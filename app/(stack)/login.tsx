@@ -1,48 +1,64 @@
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
+import { loginUser } from "../../services/authService";
+import { saveToken } from "../../utils/storage";
 
 export default function Login() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    console.log("Login:", email, password);
-    router.replace("/home");
+  const handleLogin = async () => {
+    try {
+      const res = await loginUser(email, password);
+
+      const token = res?.data?.accessToken;
+
+      if (token) {
+        await saveToken(token);
+        router.replace("/home");
+      }
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Login Failed", "Check credentials");
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Mini LMS</Text>
 
       <TextInput
         placeholder="Email"
-        style={styles.input}
         value={email}
         onChangeText={setEmail}
+        style={styles.input}
       />
 
       <TextInput
         placeholder="Password"
         secureTextEntry
-        style={styles.input}
         value={password}
         onChangeText={setPassword}
+        style={styles.input}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
+      <Pressable onPress={handleLogin} style={styles.button}>
+        <Text style={styles.buttonText}>LOGIN</Text>
+      </Pressable>
 
-      <TouchableOpacity onPress={() => router.push("/register")}>
-        <Text style={styles.link}>Create Account</Text>
-      </TouchableOpacity>
+      <Text style={styles.link} onPress={() => router.push("/register")}>
+        Create Account
+      </Text>
     </View>
   );
 }
@@ -50,42 +66,36 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#ffffff",
     justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#fff",
+    paddingHorizontal: 24,
   },
-
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "bold",
-    marginBottom: 30,
     textAlign: "center",
+    marginBottom: 32,
   },
-
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 14,
+    borderColor: "#d1d5db",
     borderRadius: 8,
-    marginBottom: 15,
+    padding: 16,
+    marginBottom: 16,
   },
-
   button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
+    backgroundColor: "#3b82f6",
+    padding: 16,
     borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 15,
   },
-
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#ffffff",
+    textAlign: "center",
     fontWeight: "bold",
   },
-
   link: {
     textAlign: "center",
-    color: "#007AFF",
+    color: "#3b82f6",
+    marginTop: 24,
   },
 });
