@@ -1,21 +1,34 @@
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
   Alert,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { loginUser } from "../../services/authService";
-import { saveToken } from "../../utils/storage";
 
 export default function Login() {
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // const handleLogin = async () => {
+  //   try {
+  //     const res = await loginUser(email, password);
+
+  //     const token = res?.data?.accessToken;
+  //     console.log("token :=> ", token);
+
+  //     await saveToken(token);
+
+  //     router.replace("/home");
+  //   } catch (error: any) {
+  //     Alert.alert("Login Failed => ", error);
+  //   }
+  // };
 
   const handleLogin = async () => {
     try {
@@ -23,42 +36,45 @@ export default function Login() {
 
       const token = res?.data?.accessToken;
 
-      if (token) {
-        await saveToken(token);
-        router.replace("/home");
+      if (!token) {
+        throw new Error("Token not received");
       }
+
+      await SecureStore.setItemAsync("token", token);
+
+      router.replace("/home");
     } catch (error) {
-      console.log(error);
-      Alert.alert("Login Failed", "Check credentials");
+      console.log("LOGIN ERROR:", error);
+      Alert.alert("Login failed");
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mini LMS</Text>
+      <Text style={styles.title}>Login</Text>
 
       <TextInput
         placeholder="Email"
+        style={styles.input}
         value={email}
         onChangeText={setEmail}
-        style={styles.input}
       />
 
       <TextInput
         placeholder="Password"
         secureTextEntry
+        style={styles.input}
         value={password}
         onChangeText={setPassword}
-        style={styles.input}
       />
 
-      <Pressable onPress={handleLogin} style={styles.button}>
-        <Text style={styles.buttonText}>LOGIN</Text>
-      </Pressable>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
 
-      <Text style={styles.link} onPress={() => router.push("/register")}>
-        Create Account
-      </Text>
+      <TouchableOpacity onPress={() => router.push("/register")}>
+        <Text style={styles.link}>Create Account</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -66,36 +82,42 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
     justifyContent: "center",
-    paddingHorizontal: 24,
+    padding: 24,
+    backgroundColor: "#fff",
   },
+
   title: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "bold",
+    marginBottom: 30,
     textAlign: "center",
-    marginBottom: 32,
   },
+
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#ddd",
+    padding: 14,
     borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
+    marginBottom: 15,
   },
+
   button: {
-    backgroundColor: "#3b82f6",
-    padding: 16,
+    backgroundColor: "#007AFF",
+    padding: 15,
     borderRadius: 8,
+    alignItems: "center",
   },
+
   buttonText: {
-    color: "#ffffff",
-    textAlign: "center",
+    color: "#fff",
+    fontSize: 16,
     fontWeight: "bold",
   },
+
   link: {
     textAlign: "center",
-    color: "#3b82f6",
-    marginTop: 24,
+    marginTop: 15,
+    color: "#007AFF",
   },
 });

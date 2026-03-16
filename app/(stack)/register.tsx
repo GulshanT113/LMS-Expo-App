@@ -1,68 +1,76 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
 import {
   Alert,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
+
+import { router } from "expo-router";
+import { useState } from "react";
+
 import { registerUser } from "../../services/authService";
 
 export default function Register() {
-  const router = useRouter();
-
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleRegister = async () => {
+    if (!username || !email || !password) {
+      Alert.alert("Error", "All fields are required");
+      return;
+    }
+
     try {
-      await registerUser(username, email, password);
+      const res = await registerUser(username, email, password);
+
+      console.log("REGISTER RESPONSE:", res);
 
       Alert.alert("Success", "Account created");
 
       router.replace("/login");
-    } catch (error) {
-      console.log(error);
-      Alert.alert("Registration Failed", "Try another email");
+    } catch (error: any) {
+      console.log("REGISTER ERROR:", error?.response?.data);
+
+      Alert.alert("Register Failed", "Check console");
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
+      <Text style={styles.title}>Create Account</Text>
 
       <TextInput
         placeholder="Username"
+        style={styles.input}
         value={username}
         onChangeText={setUsername}
-        style={styles.input}
       />
 
       <TextInput
         placeholder="Email"
+        style={styles.input}
         value={email}
         onChangeText={setEmail}
-        style={styles.input}
       />
 
       <TextInput
         placeholder="Password"
         secureTextEntry
+        style={styles.input}
         value={password}
         onChangeText={setPassword}
-        style={styles.inputPassword}
       />
 
-      <Pressable onPress={handleRegister} style={styles.button}>
-        <Text style={styles.buttonText}>REGISTER</Text>
-      </Pressable>
+      <TouchableOpacity style={styles.button} onPress={handleRegister}>
+        <Text style={styles.buttonText}>Register</Text>
+      </TouchableOpacity>
 
-      <Text style={styles.link} onPress={() => router.push("/login")}>
-        Already have an account?
-      </Text>
+      <TouchableOpacity onPress={() => router.push("/login")}>
+        <Text style={styles.link}>Already have an account? Login</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -70,50 +78,42 @@ export default function Register() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
     justifyContent: "center",
-    paddingHorizontal: 24,
+    padding: 25,
+    backgroundColor: "#fff",
   },
 
   title: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "bold",
+    marginBottom: 30,
     textAlign: "center",
-    marginBottom: 40,
   },
 
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-
-  inputPassword: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    borderColor: "#ddd",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 15,
   },
 
   button: {
-    backgroundColor: "#16a34a",
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: "#007AFF",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
   },
 
   buttonText: {
-    color: "#ffffff",
-    textAlign: "center",
+    color: "#fff",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 16,
   },
 
   link: {
     textAlign: "center",
-    color: "#2563eb",
-    marginTop: 24,
+    marginTop: 20,
+    color: "#007AFF",
   },
 });
