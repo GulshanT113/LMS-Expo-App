@@ -1,249 +1,226 @@
+import { useRouter } from "expo-router"; // ✅ navigation
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Button,
-  ScrollView,
+  ActivityIndicator,
+  FlatList,
+  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  TouchableOpacity,
 } from "react-native";
-
-import { useEffect, useState } from "react";
-
-import CourseCard from "@/components/CourseCard";
-import { getCourses } from "../../services/courseService";
-
-const data = {
-  currentPageItems: 10,
-  data: [
-    {
-      id: 1,
-      title: "iPhone 9",
-      brand: "Apple",
-      category: "smartphones",
-      description: "An apple mobile which is nothing like apple",
-      price: 549,
-      discountPercentage: 12.96,
-      rating: 4.69,
-      stock: 94,
-      thumbnail: "https://cdn.dummyjson.com/product-images/1/thumbnail.jpg",
-      images: [],
-    },
-    {
-      id: 2,
-      title: "iPhone X",
-      brand: "Apple",
-      category: "smartphones",
-      description:
-        "SIM-Free, Model A19211 6.5-inch Super Retina HD display with OLED technology A12 Bionic chip",
-      price: 899,
-      discountPercentage: 17.94,
-      rating: 4.44,
-      stock: 34,
-      thumbnail: "https://cdn.dummyjson.com/product-images/2/thumbnail.jpg",
-      images: [],
-    },
-    {
-      id: 3,
-      title: "Samsung Universe 9",
-      brand: "Samsung",
-      category: "smartphones",
-      description:
-        "Samsung's new variant which goes beyond Galaxy to the Universe",
-      price: 1249,
-      discountPercentage: 15.46,
-      rating: 4.09,
-      stock: 36,
-      thumbnail: "https://cdn.dummyjson.com/product-images/3/thumbnail.jpg",
-      images: [],
-    },
-    {
-      id: 4,
-      title: "OPPOF19",
-      brand: "OPPO",
-      category: "smartphones",
-      description: "OPPO F19 is officially announced on April 2021.",
-      price: 280,
-      discountPercentage: 17.91,
-      rating: 4.3,
-      stock: 123,
-      thumbnail: "https://cdn.dummyjson.com/product-images/4/thumbnail.jpg",
-      images: [],
-    },
-    {
-      id: 5,
-      title: "Huawei P30",
-      brand: "Huawei",
-      category: "smartphones",
-      description:
-        "Huawei’s re-badged P30 Pro New Edition was officially unveiled yesterday in Germany.",
-      price: 499,
-      discountPercentage: 10.58,
-      rating: 4.09,
-      stock: 32,
-      thumbnail: "https://cdn.dummyjson.com/product-images/5/thumbnail.jpg",
-      images: [],
-    },
-    {
-      id: 6,
-      title: "MacBook Pro",
-      brand: "Apple",
-      category: "laptops",
-      description:
-        "MacBook Pro 2021 with mini-LED display may launch between September and November",
-      price: 1749,
-      discountPercentage: 11.02,
-      rating: 4.57,
-      stock: 83,
-      thumbnail: "https://cdn.dummyjson.com/product-images/6/thumbnail.png",
-      images: [],
-    },
-    {
-      id: 7,
-      title: "Samsung Galaxy Book",
-      brand: "Samsung",
-      category: "laptops",
-      description: "Samsung Galaxy Book S laptop with Intel Lakefield Chip",
-      price: 1499,
-      discountPercentage: 4.15,
-      rating: 4.25,
-      stock: 50,
-      thumbnail: "https://cdn.dummyjson.com/product-images/7/thumbnail.jpg",
-      images: [],
-    },
-    {
-      id: 8,
-      title: "Microsoft Surface Laptop 4",
-      brand: "Microsoft Surface",
-      category: "laptops",
-      description:
-        "Style and speed with vibrant touchscreen and HD video calls",
-      price: 1499,
-      discountPercentage: 10.23,
-      rating: 4.43,
-      stock: 68,
-      thumbnail: "https://cdn.dummyjson.com/product-images/8/thumbnail.jpg",
-      images: [],
-    },
-    {
-      id: 9,
-      title: "Infinix INBOOK",
-      brand: "Infinix",
-      category: "laptops",
-      description: "Infinix Inbook X1 Ci3 10th Gen 8GB RAM 256GB SSD",
-      price: 1099,
-      discountPercentage: 11.83,
-      rating: 4.54,
-      stock: 96,
-      thumbnail: "https://cdn.dummyjson.com/product-images/9/thumbnail.jpg",
-      images: [],
-    },
-    {
-      id: 10,
-      title: "HP Pavilion 15-DK1056WM",
-      brand: "HP Pavilion",
-      category: "laptops",
-      description: "Gaming laptop with GTX 1650 GPU and Core i5 processor",
-      price: 1099,
-      discountPercentage: 6.18,
-      rating: 4.43,
-      stock: 89,
-      thumbnail: "https://cdn.dummyjson.com/product-images/10/thumbnail.jpeg",
-      images: [],
-    },
-  ],
-  limit: 10,
-  nextPage: true,
-  page: 1,
-  previousPage: false,
-  totalItems: 100,
-  totalPages: 10,
-};
-
-const dData = data?.data;
+import CourseCard from "../../components/CourseCard";
+import { getCourses, getInstructors } from "../../services/courseService";
 
 export default function Home() {
-  const [courses, setCourses] = useState<any[]>([]);
-  const [filtered, setFiltered] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
+  const router = useRouter(); // ✅
+
+  const [courses, setCourses] = useState([]);
+  const [instructor, setInstructor] = useState([]);
+
+  const [page, setPage] = useState(1);
+
+  // ✅ Separate loading states
+  const [courseLoading, setCourseLoading] = useState(false);
+  const [instructorLoading, setInstructorLoading] = useState(false);
+
   const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    loadCourses();
+    loadCourses(1, true);
+    loadInstructors();
   }, []);
 
-  const loadCourses = async () => {
-    const response = await getCourses();
-    console.log("HOME RESPONSE:", response);
-    const list = response?.data || [];
-    setCourses(list);
-    setFiltered(list);
-    console.log("COURSES LENGTH:", list.length);
-  };
+  // 🔥 Load Courses
+  const loadCourses = async (pageNumber: any, reset = false) => {
+    if (courseLoading) return;
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadCourses();
-    setRefreshing(false);
-  };
+    setCourseLoading(true);
+    try {
+      const response = await getCourses(pageNumber);
+      const list = response?.data?.data || [];
+      const nextPage = response?.data?.nextPage;
 
-  const handleSearch = (text: string) => {
-    setSearch(text);
-    const filteredData = dData.filter((item) =>
-      item.title.toLowerCase().includes(text.toLowerCase()),
-    );
-    setFiltered(filteredData);
-  };
-
-  const [page, setPage] = useState(data?.page);
-  const loadNextPage = () => {
-    if (data?.nextPage) {
-      console.log("Load next page...");
-      // later you will call API with page + 1
-      setPage(page + 1);
+      setCourses((prev) => (reset ? list : [...prev, ...list]));
+      setHasMore(!!nextPage);
+    } catch (error) {
+      console.log("COURSE ERROR:", error);
+    } finally {
+      setCourseLoading(false);
+      setRefreshing(false);
     }
   };
 
+  // 🔥 Load Instructors
+  const loadInstructors = async () => {
+    if (instructorLoading) return;
+
+    setInstructorLoading(true);
+    try {
+      const response = await getInstructors();
+      const users = response?.data?.data || [];
+      setInstructor(users);
+    } catch (error) {
+      console.log("INSTRUCTOR ERROR:", error);
+    } finally {
+      setInstructorLoading(false);
+    }
+  };
+
+  // ✅ Stable Instructor Mapping
+  const combinedData = useMemo(() => {
+    if (!instructor.length) return courses;
+
+    return courses.map((course: any, index) => {
+      const instructorIndex = course.id
+        ? course.id % instructor.length
+        : index % instructor.length;
+
+      return {
+        ...course,
+        instructorName:
+          `${instructor[instructorIndex]?.name?.title} ${instructor[instructorIndex]?.name?.first} ${instructor[instructorIndex]?.name?.last}` ||
+          "Unknown",
+      };
+    });
+  }, [courses, instructor]);
+
+  // 🔍 Search
+  const filteredCourses = useMemo(() => {
+    if (!search) return combinedData;
+
+    const searchText = search.trim().toLowerCase();
+
+    return combinedData.filter((item) => {
+      const fullData = JSON.stringify(item).toLowerCase();
+      return fullData.includes(searchText);
+    });
+  }, [search, combinedData]);
+
+  // 🔄 Pull to refresh
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setPage(1);
+    setHasMore(true);
+    loadCourses(1, true);
+  };
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.screen}>
+      {/* 🔍 Search */}
       <TextInput
-        placeholder="Search Courses..."
-        style={styles.search}
+        placeholder="Search anything..."
         value={search}
-        onChangeText={handleSearch}
+        onChangeText={setSearch}
+        style={styles.search}
       />
-      <ScrollView style={styles.container}>
-        {dData ? (
-          dData.map((item: any) => <CourseCard item={item} />)
-        ) : (
-          <Text style={styles.empty}>No Data Found</Text>
+
+      <FlatList
+        data={filteredCourses}
+        keyExtractor={(item, index) =>
+          item?.id ? item.id.toString() : index.toString()
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() =>
+              router.push({
+                pathname: "/courseDetails",
+                params: { data: JSON.stringify(item) },
+              })
+            }
+          >
+            <Text style={styles.title}>
+              {item.title || item.name?.first || "No Title"}
+            </Text>
+
+            <CourseCard item={item} />
+          </TouchableOpacity>
         )}
-        {/* Pagination Button */}
-        {data?.nextPage && (
-          <View style={{ marginVertical: 20 }}>
-            <Button title="Load More" onPress={loadNextPage} />
-          </View>
-        )}
-      </ScrollView>
-    </View>
+        // 🔥 Infinite Scroll
+        onEndReached={() => {
+          if (hasMore && !courseLoading) {
+            const next = page + 1;
+            setPage(next);
+            loadCourses(next);
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        // 🔄 Pull to Refresh
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        // 🔻 Footer
+        ListFooterComponent={
+          courseLoading ? (
+            <ActivityIndicator size="large" color="#007bff" />
+          ) : hasMore ? (
+            <TouchableOpacity
+              style={styles.loadMoreBtn}
+              onPress={() => {
+                const next = page + 1;
+                setPage(next);
+                loadCourses(next);
+              }}
+            >
+              <Text style={styles.loadMoreText}>Load More</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.endText}>No More Data</Text>
+          )
+        }
+      />
+    </SafeAreaView>
   );
 }
 
+// 🎨 Styles
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 15,
     backgroundColor: "#f5f5f5",
   },
+
   search: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 10,
     backgroundColor: "#fff",
+    margin: 10,
+    padding: 10,
+    borderRadius: 10,
+    elevation: 3,
   },
-  empty: {
+
+  card: {
+    backgroundColor: "#fff",
+    margin: 10,
+    padding: 15,
+    borderRadius: 10,
+    elevation: 4,
+  },
+
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+  },
+
+  loadMoreBtn: {
+    backgroundColor: "#007bff",
+    padding: 12,
+    margin: 15,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+
+  loadMoreText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+
+  endText: {
     textAlign: "center",
-    marginTop: 30,
+    margin: 15,
+    color: "gray",
   },
 });
