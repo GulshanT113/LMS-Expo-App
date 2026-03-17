@@ -3,10 +3,27 @@ import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { getToken } from "../../utils/storage";
 
+// 🔔 IMPORT NOTIFICATION SERVICE
+import {
+  requestPermission,
+  scheduleReminderIfInactive,
+  updateLastOpenTime,
+} from "../../services/notificationService";
+
 export default function Index() {
   useEffect(() => {
-    checkLogin();
+    initApp();
   }, []);
+
+  const initApp = async () => {
+    // ✅ Notification Setup
+    await requestPermission();
+    await scheduleReminderIfInactive();
+    await updateLastOpenTime();
+
+    // ✅ Auth Check
+    checkLogin();
+  };
 
   const checkLogin = async () => {
     const token = await getToken();

@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
   Alert,
@@ -10,42 +9,42 @@ import {
   View,
 } from "react-native";
 import { loginUser } from "../../services/authService";
+import { saveToken } from "../../utils/storage"; // ✅ IMPORTANT
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // const handleLogin = async () => {
-  //   try {
-  //     const res = await loginUser(email, password);
-
-  //     const token = res?.data?.accessToken;
-  //     console.log("token :=> ", token);
-
-  //     await saveToken(token);
-
-  //     router.replace("/home");
-  //   } catch (error: any) {
-  //     Alert.alert("Login Failed => ", error);
-  //   }
-  // };
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter email and password");
+      return;
+    }
+
     try {
+      setLoading(true);
+
       const res = await loginUser(email, password);
 
+      // 🔥 FIX: correct token path
       const token = res?.data?.accessToken;
 
       if (!token) {
         throw new Error("Token not received");
       }
 
-      await SecureStore.setItemAsync("token", token);
+      // ✅ USE STORAGE HELPER (works on all platforms)
+      await saveToken(token);
+
+      Alert.alert("Success", "Login Successful 🎉");
 
       router.replace("/home");
-    } catch (error) {
+    } catch (error: any) {
       console.log("LOGIN ERROR:", error);
-      Alert.alert("Login failed");
+      Alert.alert("Login Failed", error?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,8 +67,14 @@ export default function Login() {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity
+        style={[styles.button, loading && { opacity: 0.6 }]}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? "Logging in..." : "Login"}
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push("/register")}>

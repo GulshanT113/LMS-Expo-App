@@ -1,27 +1,24 @@
+import { removeToken } from "@/utils/storage";
+import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
-import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
-
 import { getProfile } from "../../services/authService";
 import { getCourses } from "../../services/courseService";
 
 export default function Profile() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
   const [avatar, setAvatar] = useState<string | null>(null);
-
-  // ✅ NEW STATES
   const [coursesCount, setCoursesCount] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -34,52 +31,45 @@ export default function Profile() {
       const user = await getProfile();
       setProfile(user?.data);
       setAvatar(user?.data?.avatar?.url);
-
-      // ✅ FETCH COURSES
       const courseRes = await getCourses();
       const courseList = courseRes?.data || [];
 
-      // 👉 Assume enrolled = first few courses
+      // Assume enrolled = first few courses
       const enrolled = courseList.slice(0, 5);
-
       setCoursesCount(enrolled.length);
 
-      // 👉 Calculate progress (avg rating based mock)
+      // Calculate progress (avg rating based mock)
       const totalRating = enrolled.reduce(
         (sum: number, item: any) => sum + item.rating,
         0,
       );
-
       const avgProgress = Math.round((totalRating / enrolled.length) * 20);
       // rating (0-5) → convert to %
-
       setProgress(avgProgress);
     } catch (error) {
       console.log("ERROR:", error);
     }
-
     setLoading(false);
   };
 
-  // ✅ IMAGE PICK
+  console.log("profile progress => ", progress);
+  console.log("profile data => ", profile);
+
+  // IMAGE PICK
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (!permission.granted) {
       Alert.alert("Permission required");
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
     });
-
     if (!result.canceled) {
       setAvatar(result.assets[0].uri);
     }
   };
-
   if (loading) {
     return (
       <View style={styles.center}>
@@ -89,60 +79,67 @@ export default function Profile() {
     );
   }
 
+  const handleLogout = () => {
+    removeToken();
+    router.replace("/login");
+  };
+
   return (
-    <View style={styles.container}>
-      {/* ✅ PROFILE IMAGE */}
-      <TouchableOpacity onPress={pickImage}>
-        <Image
-          source={{
-            uri:
-              avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-          }}
-          style={styles.avatar}
-        />
-        <Text style={styles.editText}>Tap to change photo</Text>
-      </TouchableOpacity>
+    <ScrollView>
+      <View style={styles.container}>
+        {/* PROFILE IMAGE */}
+        <TouchableOpacity onPress={pickImage}>
+          <Image
+            source={{
+              uri:
+                avatar ||
+                "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+            }}
+            style={styles.avatar}
+          />
+          <Text style={styles.editText}>Tap to change photo</Text>
+        </TouchableOpacity>
 
-      {/* ✅ USER INFO */}
-      <Text style={styles.name}>{profile?.username}</Text>
-      <Text style={styles.info}>Email: {profile?.email}</Text>
-
-      {/* ✅ STATS */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{coursesCount}</Text>
-          <Text style={styles.statLabel}>Courses</Text>
+        {/* USER INFO */}
+        <Text style={styles.name}>{profile?.username}</Text>
+        <View style={styles.card}>
+          <Text style={styles.info}>ID: {profile?._id}</Text>
+          <Text style={styles.info}>Email: {profile?.email}</Text>
+          <Text style={styles.info}>Role: {profile?.role}</Text>
+          <Text style={styles.info}>Login Type: {profile?.loginType}</Text>
+          <Text style={styles.info}>Created At: {profile?.createdAt}</Text>
+          <Text style={styles.info}>Updated At: {profile?.updatedAt}</Text>
         </View>
-
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{progress}%</Text>
-          <Text style={styles.statLabel}>Progress</Text>
+        {/* STATS */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>5</Text>
+            <Text style={styles.statLabel}>Courses</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>65%</Text>
+            <Text style={styles.statLabel}>Progress</Text>
+          </View>
         </View>
+        {/* PROGRESS BAR */}
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `65%` }]} />
+        </View>
+        <TouchableOpacity style={styles.logout} onPress={handleLogout}>
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>Logout</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* ✅ PROGRESS BAR */}
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${progress}%` }]} />
-      </View>
-
-      {/* ✅ LOGOUT */}
-      <TouchableOpacity
-        style={styles.logout}
-        onPress={() => router.replace("/login")}
-      >
-        <Text style={{ color: "#fff", fontWeight: "bold" }}>Logout</Text>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
+    marginTop: 30,
     padding: 20,
     backgroundColor: "#f5f5f5",
   },
-
   center: {
     flex: 1,
     justifyContent: "center",
@@ -150,10 +147,10 @@ const styles = StyleSheet.create({
   },
 
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 8,
+    width: 250,
+    height: 250,
+    borderRadius: 250,
+    marginBottom: 4,
   },
 
   editText: {
@@ -164,14 +161,23 @@ const styles = StyleSheet.create({
   },
 
   name: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
     marginBottom: 10,
+    color: "skyblue",
+  },
+
+  card: {
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 10,
+    elevation: 3,
   },
 
   info: {
     fontSize: 16,
     marginBottom: 5,
+    fontWeight: "bold",
   },
 
   statsContainer: {
@@ -199,7 +205,7 @@ const styles = StyleSheet.create({
   },
 
   logout: {
-    marginTop: 30,
+    marginTop: 15,
     backgroundColor: "#d32f2f",
     padding: 12,
     borderRadius: 8,

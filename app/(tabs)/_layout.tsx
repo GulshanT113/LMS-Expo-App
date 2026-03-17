@@ -31,7 +31,7 @@ export default function TabLayout() {
         options={{
           title: "Course Details",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <IconSymbol size={28} name="book.fill" color={color} />
           ),
         }}
       />
@@ -40,7 +40,16 @@ export default function TabLayout() {
         options={{
           title: "Bookmarks",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="bookmark.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="webview"
+        options={{
+          title: "Webview",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="globe.fill" color={color} />
           ),
         }}
       />
@@ -49,7 +58,7 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="person.fill" color={color} />
           ),
         }}
       />

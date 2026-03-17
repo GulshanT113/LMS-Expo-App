@@ -134,5 +134,6 @@ const styles = StyleSheet.create({
   },
   value: {
     color: "#222",
+    paddingBottom: 2,
   },
 });

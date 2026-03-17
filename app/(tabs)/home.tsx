@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router"; // ✅ navigation
+import { useRouter } from "expo-router"; // navigation
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,17 +13,12 @@ import CourseCard from "../../components/CourseCard";
 import { getCourses, getInstructors } from "../../services/courseService";
 
 export default function Home() {
-  const router = useRouter(); // ✅
-
+  const router = useRouter();
   const [courses, setCourses] = useState([]);
   const [instructor, setInstructor] = useState([]);
-
   const [page, setPage] = useState(1);
-
-  // ✅ Separate loading states
   const [courseLoading, setCourseLoading] = useState(false);
   const [instructorLoading, setInstructorLoading] = useState(false);
-
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState("");
@@ -33,16 +28,14 @@ export default function Home() {
     loadInstructors();
   }, []);
 
-  // 🔥 Load Courses
+  // Load Courses
   const loadCourses = async (pageNumber: any, reset = false) => {
     if (courseLoading) return;
-
     setCourseLoading(true);
     try {
       const response = await getCourses(pageNumber);
       const list = response?.data?.data || [];
       const nextPage = response?.data?.nextPage;
-
       setCourses((prev) => (reset ? list : [...prev, ...list]));
       setHasMore(!!nextPage);
     } catch (error) {
@@ -53,10 +46,9 @@ export default function Home() {
     }
   };
 
-  // 🔥 Load Instructors
+  // Load Instructors
   const loadInstructors = async () => {
     if (instructorLoading) return;
-
     setInstructorLoading(true);
     try {
       const response = await getInstructors();
@@ -69,7 +61,7 @@ export default function Home() {
     }
   };
 
-  // ✅ Stable Instructor Mapping
+  // Stable Instructor Mapping
   const combinedData = useMemo(() => {
     if (!instructor.length) return courses;
 
@@ -87,19 +79,17 @@ export default function Home() {
     });
   }, [courses, instructor]);
 
-  // 🔍 Search
+  // Search
   const filteredCourses = useMemo(() => {
     if (!search) return combinedData;
-
     const searchText = search.trim().toLowerCase();
-
     return combinedData.filter((item) => {
       const fullData = JSON.stringify(item).toLowerCase();
       return fullData.includes(searchText);
     });
   }, [search, combinedData]);
 
-  // 🔄 Pull to refresh
+  // Pull to refresh
   const handleRefresh = () => {
     setRefreshing(true);
     setPage(1);
@@ -109,14 +99,12 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      {/* 🔍 Search */}
       <TextInput
         placeholder="Search anything..."
         value={search}
         onChangeText={setSearch}
         style={styles.search}
       />
-
       <FlatList
         data={filteredCourses}
         keyExtractor={(item, index) =>
@@ -139,7 +127,7 @@ export default function Home() {
             <CourseCard item={item} />
           </TouchableOpacity>
         )}
-        // 🔥 Infinite Scroll
+        // Infinite Scroll
         onEndReached={() => {
           if (hasMore && !courseLoading) {
             const next = page + 1;
@@ -148,10 +136,10 @@ export default function Home() {
           }
         }}
         onEndReachedThreshold={0.5}
-        // 🔄 Pull to Refresh
+        // Pull to Refresh
         refreshing={refreshing}
         onRefresh={handleRefresh}
-        // 🔻 Footer
+        // Footer
         ListFooterComponent={
           courseLoading ? (
             <ActivityIndicator size="large" color="#007bff" />
@@ -175,10 +163,10 @@ export default function Home() {
   );
 }
 
-// 🎨 Styles
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    marginTop: 30,
     backgroundColor: "#f5f5f5",
   },
 
