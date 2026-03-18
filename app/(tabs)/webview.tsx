@@ -149,7 +149,6 @@ const styles = StyleSheet.create({
     color: "black",
     fontWeight: "bold",
     fontSize: 30,
-    // marginLeft: 5,
   },
   header3: {
     marginRight: 5,
@@ -174,7 +173,6 @@ const styles = StyleSheet.create({
     marginTop: 30,
     flex: 1,
     justifyContent: "space-between",
-    // alignItems: "center",
     padding: 5,
     backgroundColor: "white",
   },
