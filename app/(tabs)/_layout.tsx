@@ -45,6 +45,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="enrolled"
+        options={{
+          title: "Enrolled",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="graduationcap.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="webview"
         options={{
           title: "Webview",

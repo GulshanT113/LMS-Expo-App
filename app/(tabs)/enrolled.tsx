@@ -10,45 +10,37 @@ import {
 } from "react-native";
 
 import Border from "@/components/Border";
-import { getBookmarks } from "../../utils/bookmarkStorage";
+import { getEnrollments } from "../../utils/enrollStorage";
 
-export default function Bookmarks() {
-  const [bookmarks, setBookmarks] = useState([]);
+export default function Enrolled() {
+  const [list, setList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    loadBookmarks();
+    loadData();
   }, []);
 
-  const loadBookmarks = async () => {
-    try {
-      const list = await getBookmarks();
-      setBookmarks(list);
-    } catch (e) {
-      setBookmarks([]);
-    }
+  const loadData = async () => {
+    const data = await getEnrollments();
+    setList(data);
   };
 
-  // 🔄 Pull to refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadBookmarks();
+    await loadData();
     setRefreshing(false);
   }, []);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bookmark Courses</Text>
+      <Text style={styles.title}>Enrolled Courses</Text>
       <Border />
       <FlatList
-        data={bookmarks}
+        data={list}
         keyExtractor={(item, index) => index.toString()}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No bookmarks yet</Text>
         }
         renderItem={({ item }: any) => (
           <TouchableOpacity
@@ -64,6 +56,9 @@ export default function Bookmarks() {
             <Text>{item.instructorName}</Text>
           </TouchableOpacity>
         )}
+        ListEmptyComponent={
+          <Text style={styles.empty}>No enrolled courses</Text>
+        }
       />
     </View>
   );
@@ -72,18 +67,19 @@ export default function Bookmarks() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 5, marginTop: 30, backgroundColor: "white" },
   title: { fontSize: 30, fontWeight: "bold", color: "black" },
-
   card: {
-    backgroundColor: "#fff",
-    elevation: 3,
     padding: 15,
     marginVertical: 8,
     borderRadius: 10,
+    backgroundColor: "#fff",
+    elevation: 3,
     marginRight: 5,
     marginLeft: 5,
   },
-
   name: { fontWeight: "bold" },
-
-  emptyText: { textAlign: "center", marginTop: 315, fontSize: 20 },
+  empty: {
+    textAlign: "center",
+    marginTop: 315,
+    fontSize: 20,
+  },
 });

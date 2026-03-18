@@ -1,4 +1,5 @@
 import { removeToken } from "@/utils/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -6,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,7 +15,10 @@ import {
   View,
 } from "react-native";
 import { getProfile } from "../../services/authService";
-import { getCourses } from "../../services/courseService";
+import { getBookmarks } from "../../utils/bookmarkStorage";
+import { getEnrollments } from "../../utils/enrollStorage";
+
+const PROFILE_IMAGE_KEY = "profile_image";
 
 export default function Profile() {
   const [profile, setProfile] = useState<any>(null);
@@ -21,6 +26,8 @@ export default function Profile() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [coursesCount, setCoursesCount] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [refreshing, setRefreshing] = useState(false); // NEW
+  const [bookData, setBookData] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -30,32 +37,52 @@ export default function Profile() {
     try {
       const user = await getProfile();
       setProfile(user?.data);
-      setAvatar(user?.data?.avatar?.url);
-      const courseRes = await getCourses();
-      const courseList = courseRes?.data || [];
 
-      // Assume enrolled = first few courses
-      const enrolled = courseList.slice(0, 5);
-      setCoursesCount(enrolled.length);
-
-      // Calculate progress (avg rating based mock)
-      const totalRating = enrolled.reduce(
-        (sum: number, item: any) => sum + item.rating,
-        0,
-      );
-      const avgProgress = Math.round((totalRating / enrolled.length) * 20);
-      // rating (0-5) → convert to %
+      // Load saved image
+      const savedImage = await AsyncStorage.getItem(PROFILE_IMAGE_KEY);
+      if (savedImage) {
+        setAvatar(savedImage);
+      } else {
+        setAvatar(user?.data?.avatar?.url);
+      }
+      const bookMark = await getBookmarks();
+      setBookData(bookMark?.length);
+      const enrolled = await getEnrollments();
+      const maxCourses = enrolled?.length;
+      const avgProgress = enrolled?.length
+        ? Math.round(15 + (enrolled?.length / maxCourses) * (90 - 15))
+        : 0;
       setProgress(avgProgress);
     } catch (error) {
       console.log("ERROR:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false); // stop refresh
     }
-    setLoading(false);
   };
 
-  console.log("profile progress => ", progress);
-  console.log("profile data => ", profile);
+  // PULL TO REFRESH FUNCTION
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
 
-  // IMAGE PICK
+  // CAMERA
+  const openCamera = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Camera permission required");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 1 });
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      setAvatar(uri);
+      await AsyncStorage.setItem(PROFILE_IMAGE_KEY, uri);
+    }
+  };
+
+  // GALLERY
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -67,9 +94,21 @@ export default function Profile() {
       quality: 1,
     });
     if (!result.canceled) {
-      setAvatar(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setAvatar(uri);
+      await AsyncStorage.setItem(PROFILE_IMAGE_KEY, uri);
     }
   };
+
+  // OPTIONS
+  const handleImageSelection = () => {
+    Alert.alert("Select Image", "Choose option", [
+      { text: "Camera", onPress: openCamera },
+      { text: "Gallery", onPress: pickImage },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -84,11 +123,28 @@ export default function Profile() {
     router.replace("/login");
   };
 
+  const formatFullName = (fullName = "") => {
+    if (!fullName) return "";
+    const capitalize = (word: any) =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    return fullName
+      .trim()
+      .split(/\s+/) // split by any spaces
+      .map(capitalize) // capitalize each word
+      .join(" "); // join safely (no extra spaces)
+  };
+
+  const formattedName = formatFullName(profile?.username);
+
   return (
-    <ScrollView>
+    <ScrollView
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.container}>
         {/* PROFILE IMAGE */}
-        <TouchableOpacity onPress={pickImage}>
+        <TouchableOpacity onPress={handleImageSelection}>
           <Image
             source={{
               uri:
@@ -101,7 +157,8 @@ export default function Profile() {
         </TouchableOpacity>
 
         {/* USER INFO */}
-        <Text style={styles.name}>{profile?.username}</Text>
+        <Text style={styles.name}>{formattedName}</Text>
+
         <View style={styles.card}>
           <Text style={styles.info}>ID: {profile?._id}</Text>
           <Text style={styles.info}>Email: {profile?.email}</Text>
@@ -110,21 +167,26 @@ export default function Profile() {
           <Text style={styles.info}>Created At: {profile?.createdAt}</Text>
           <Text style={styles.info}>Updated At: {profile?.updatedAt}</Text>
         </View>
+
         {/* STATS */}
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>5</Text>
+            <Text style={styles.statNumber}>{bookData}</Text>
             <Text style={styles.statLabel}>Courses</Text>
           </View>
+
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>65%</Text>
+            <Text style={styles.statNumber}>{`${progress}%`}</Text>
             <Text style={styles.statLabel}>Progress</Text>
           </View>
         </View>
+
         {/* PROGRESS BAR */}
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `65%` }]} />
+          <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
+
+        {/* LOGOUT */}
         <TouchableOpacity style={styles.logout} onPress={handleLogout}>
           <Text style={{ color: "#fff", fontWeight: "bold" }}>Logout</Text>
         </TouchableOpacity>
@@ -132,6 +194,7 @@ export default function Profile() {
     </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -140,6 +203,7 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#f5f5f5",
   },
+
   center: {
     flex: 1,
     justifyContent: "center",
@@ -172,6 +236,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     elevation: 3,
+    width: "100%",
   },
 
   info: {
@@ -204,14 +269,6 @@ const styles = StyleSheet.create({
     color: "gray",
   },
 
-  logout: {
-    marginTop: 15,
-    backgroundColor: "#d32f2f",
-    padding: 12,
-    borderRadius: 8,
-    width: "80%",
-    alignItems: "center",
-  },
   progressBar: {
     height: 10,
     width: "80%",
@@ -224,5 +281,14 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     backgroundColor: "#4caf50",
+  },
+
+  logout: {
+    marginTop: 15,
+    backgroundColor: "#d32f2f",
+    padding: 12,
+    borderRadius: 8,
+    width: "80%",
+    alignItems: "center",
   },
 });

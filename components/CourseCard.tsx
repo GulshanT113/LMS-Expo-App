@@ -79,14 +79,14 @@ export default function CourseCard({ item, level = 0, parentKey = "" }: any) {
   return (
     <View style={[styles.container, { marginLeft: level * 10 }]}>
       {Object.entries(item).map(([key, value], index) => {
-        const uniqueKey = `${parentKey}-${key}-${index}`;
+        const uniqueKey = `${parentKey}-${key}-${index}-${item.description}`;
 
         if (typeof value === "object" && value !== null) {
           return (
             <View key={uniqueKey} style={styles.nestedBox}>
               {/* <Text style={styles.key}>{key}:</Text> */}
               {/* <CourseCard
-                item={value}
+                item={value}                                 // for deep nested
                 level={level + 1}
                 parentKey={uniqueKey}
               /> */}

@@ -1,16 +1,15 @@
 import axios from "axios";
-import { getToken } from "../utils/storage"; // ✅ IMPORTANT
+import { getToken } from "../utils/storage"; // IMPORTANT
 
 export const api = axios.create({
   baseURL: "https://api.freeapi.app/api/v1/",
 });
 
-// ✅ REQUEST INTERCEPTOR
+// REQUEST INTERCEPTOR
 api.interceptors.request.use(
   async (config: any) => {
     try {
-      const token = await getToken(); // ✅ CROSS-PLATFORM TOKEN
-
+      const token = await getToken(); // CROSS-PLATFORM TOKEN
       if (token) {
         config.headers = {
           ...config.headers,
@@ -20,7 +19,6 @@ api.interceptors.request.use(
     } catch (e) {
       console.log("API TOKEN ERROR:", e);
     }
-
     return config;
   },
   (error) => {

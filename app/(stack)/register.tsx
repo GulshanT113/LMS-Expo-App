@@ -1,3 +1,5 @@
+import { router } from "expo-router";
+import { useState } from "react";
 import {
   Alert,
   StyleSheet,
@@ -6,35 +8,53 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import { router } from "expo-router";
-import { useState } from "react";
-
 import { registerUser } from "../../services/authService";
 
 export default function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // 👁️ toggle state
+
+  // Username validation (allow any case + numbers)
+  const isValidUsername = (name: any) => {
+    return /^[A-Za-z0-9 ]+$/.test(name);
+  };
+
+  // Email validation
+  const isValidEmail = (email: any) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
 
   const handleRegister = async () => {
     if (!username || !email || !password) {
-      Alert.alert("Error", "All fields are required");
+      Alert.alert("Warn! ", "All fields are required");
+      return;
+    }
+
+    if (!isValidUsername(username)) {
+      Alert.alert(
+        "Invalid Username",
+        "Username can contain letters and numbers only",
+      );
+      return;
+    }
+    if (!isValidEmail(email)) {
+      Alert.alert("Invalid Email", "Please enter a valid email address");
       return;
     }
 
     try {
-      const res = await registerUser(username, email, password);
-
-      console.log("REGISTER RESPONSE:", res);
-
+      const formattedUsername = username.toLowerCase();
+      const res = await registerUser(
+        formattedUsername, // send lowercase
+        email,
+        password,
+      );
       Alert.alert("Success", "Account created");
-
       router.replace("/login");
     } catch (error: any) {
-      console.log("REGISTER ERROR:", error?.response?.data);
-
-      Alert.alert("Register Failed", "Check console");
+      Alert.alert("Register Failed", error?.response?.data);
     }
   };
 
@@ -54,15 +74,24 @@ export default function Register() {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
       />
 
-      <TextInput
-        placeholder="Password"
-        secureTextEntry
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-      />
+      {/* Password with toggle */}
+      <View style={styles.passwordContainer}>
+        <TextInput
+          placeholder="Password"
+          secureTextEntry={!showPassword}
+          style={styles.passwordInput}
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <Text style={styles.eye}>{showPassword ? "🙈" : "👁️"}</Text>
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Register</Text>
@@ -96,6 +125,27 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     marginBottom: 15,
+    color: "black",
+  },
+
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    color: "black",
+  },
+
+  eye: {
+    fontSize: 18,
   },
 
   button: {

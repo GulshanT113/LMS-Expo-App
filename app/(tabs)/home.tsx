@@ -174,8 +174,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     margin: 10,
     padding: 10,
+    marginBottom: 0,
     borderRadius: 10,
     elevation: 3,
+    color: "black",
+    marginTop: 12,
   },
 
   card: {
@@ -184,6 +187,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     elevation: 4,
+    marginBottom: 0,
   },
 
   title: {

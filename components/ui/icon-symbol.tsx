@@ -25,6 +25,7 @@ const MAPPING = {
   "book.fill": "menu-book",
   "bookmark.fill": "bookmark",
   "globe.fill": "public",
+  "graduationcap.fill": "school",
 } as IconMapping;
 
 /**

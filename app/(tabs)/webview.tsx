@@ -1,3 +1,4 @@
+import Border from "@/components/Border";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -6,8 +7,7 @@ import { WebView } from "react-native-webview";
 export default function Webview() {
   const { data }: any = useLocalSearchParams();
   const router = useRouter();
-
-  // ✅ SAFE PARSE
+  // SAFE PARSE
   let course = null;
   try {
     course = data ? JSON.parse(data) : null;
@@ -17,10 +17,15 @@ export default function Webview() {
 
   const webRef = useRef<any>(null);
 
-  // ❌ NO DATA UI
+  // NO DATA UI
   if (!course) {
     return (
       <View style={styles.center}>
+        <View>
+          <Text style={styles.header2}>WebView Course🌐</Text>
+          <Border />
+        </View>
+
         <Text style={styles.emptyText}>
           No selected Web-view right now.
           {"\n\n"}
@@ -41,7 +46,7 @@ export default function Webview() {
     );
   }
 
-  // ✅ Dynamic HTML
+  // Dynamic HTML
   const htmlContent = `
     <html>
       <head>
@@ -94,18 +99,11 @@ export default function Webview() {
   `;
 
   return (
-    <View style={{ flex: 1, marginTop: 30 }}>
-      <Text style={styles.header}>🌐 WebView Course</Text>
-
-      {/* 🔥 Native → WebView */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => {
-          webRef.current?.postMessage("Hello from App 🚀");
-        }}
-      >
-        <Text style={styles.btnText}>Send Message to WebView</Text>
-      </TouchableOpacity>
+    <View style={{ flex: 1, marginTop: 30, backgroundColor: "white" }}>
+      <View style={styles.header3}>
+        <Text style={styles.header}>WebView Course🌐</Text>
+        <Border />
+      </View>
 
       <WebView
         ref={webRef}
@@ -125,17 +123,37 @@ export default function Webview() {
           }
         }}
       />
+      {/* Native → WebView */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => {
+          webRef.current?.postMessage("Hello from App 🚀");
+        }}
+      >
+        <Text style={styles.btnText}>Send Message to WebView</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    padding: 10,
-    backgroundColor: "#007bff",
-    color: "#fff",
+    backgroundColor: "white",
+    color: "black",
     fontWeight: "bold",
-    textAlign: "center",
+    fontSize: 30,
+    paddingTop: 5,
+  },
+  header2: {
+    backgroundColor: "white",
+    color: "black",
+    fontWeight: "bold",
+    fontSize: 30,
+    // marginLeft: 5,
+  },
+  header3: {
+    marginRight: 5,
+    marginLeft: 5,
   },
 
   button: {
@@ -151,17 +169,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  // ✅ EMPTY STATE
+  // EMPTY STATE
   center: {
+    marginTop: 30,
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    justifyContent: "space-between",
+    // alignItems: "center",
+    padding: 5,
+    backgroundColor: "white",
   },
 
   emptyText: {
     textAlign: "center",
     fontSize: 16,
-    color: "#444",
+    color: "black",
   },
 });

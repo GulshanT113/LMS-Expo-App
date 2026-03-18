@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,103 +11,144 @@ import {
   View,
 } from "react-native";
 
-// 🔔 Notification import
-import { checkBookmarkNotification } from "../../services/notificationService";
+// ✅ existing
+import { getBookmarks, saveBookmarks } from "../../utils/bookmarkStorage";
+
+// ✅ NEW (notification)
+import Border from "@/components/Border";
+import {
+  checkBookmarkNotification,
+  checkEnrollNotification,
+} from "../../services/notificationService";
 
 export default function CourseDetails() {
   const { data }: any = useLocalSearchParams();
   const router = useRouter();
 
-  // ✅ SAFE PARSE
   let course = null;
   try {
     course = data ? JSON.parse(data) : null;
   } catch (e) {
-    console.log("PARSE ERROR", e);
+    console.log("Parse Error:", e);
   }
 
   const [bookmarked, setBookmarked] = useState(false);
   const [enrolled, setEnrolled] = useState(false);
   const [loadingState, setLoadingState] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // ✅ Unique ID
-  const uniqueId = course ? `${course.id}-${course.title}` : "";
+  const uniqueId = course
+    ? `${course.id}-${course.title}-${course.description}`
+    : "";
 
   useEffect(() => {
-    if (course) {
-      loadInitialState();
-    } else {
-      setLoadingState(false);
-    }
+    loadInitialState();
   }, []);
 
-  // ✅ Load saved state
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadInitialState();
+    setRefreshing(false);
+  }, []);
+
   const loadInitialState = async () => {
     try {
-      const savedBookmarks = await AsyncStorage.getItem("bookmarks");
+      const bookmarks = await getBookmarks();
       const savedEnrollments = await AsyncStorage.getItem("enrollments");
 
-      const bookmarks = savedBookmarks ? JSON.parse(savedBookmarks) : [];
       const enrollments = savedEnrollments ? JSON.parse(savedEnrollments) : [];
 
-      setBookmarked(
-        bookmarks.some((i: any) => `${i.id}-${i.title}` === uniqueId),
+      const isBookmarked = bookmarks.some(
+        (i: any) => `${i.id}-${i.title}-${i.description}` === uniqueId,
       );
 
-      setEnrolled(
-        enrollments.some((i: any) => `${i.id}-${i.title}` === uniqueId),
+      const isEnrolled = enrollments.some(
+        (i: any) => `${i.id}-${i.title}-${i.description}` === uniqueId,
       );
+      setBookmarked(isBookmarked);
+      setEnrolled(isEnrolled);
     } catch (e) {
-      console.log("LOAD ERROR", e);
+      console.log("Load Error:", e);
     } finally {
       setLoadingState(false);
     }
   };
 
-  // 🔖 Toggle Bookmark + Notification
+  // ✅ UPDATED: Bookmark with notification
   const toggleBookmark = async () => {
     try {
-      const saved = await AsyncStorage.getItem("bookmarks");
-      let list = saved ? JSON.parse(saved) : [];
-      let updatedList;
+      let list = await getBookmarks();
 
-      if (bookmarked) {
-        updatedList = list.filter(
-          (i: any) => `${i.id}-${i.title}` !== uniqueId,
-        );
+      const exists = list.some(
+        (i: any) => `${i.id}-${i.title}-${i.description}` === uniqueId,
+      );
+
+      if (exists) {
+        Alert.alert("Remove Bookmark", "Are you sure?", [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "OK",
+            onPress: async () => {
+              const updated = list.filter(
+                (i: any) => `${i.id}-${i.title}-${i.description}` !== uniqueId,
+              );
+              await saveBookmarks(updated);
+              await checkBookmarkNotification(updated);
+              setBookmarked(false);
+            },
+          },
+        ]);
       } else {
-        updatedList = [...list, course];
+        const updated = [...list, course];
+        await saveBookmarks(updated);
+        await checkBookmarkNotification(updated);
+        setBookmarked(true);
       }
-
-      setBookmarked(!bookmarked);
-      await AsyncStorage.setItem("bookmarks", JSON.stringify(updatedList));
-
-      // 🔔 Trigger notification when count reaches 5
-      await checkBookmarkNotification();
     } catch (e) {
-      console.log("BOOKMARK ERROR", e);
+      console.log("Bookmark Error:", e);
     }
   };
 
-  // 🎓 Enroll
-  const handleEnroll = async () => {
+  // Enroll with notification
+  const toggleEnroll = async () => {
     try {
       const saved = await AsyncStorage.getItem("enrollments");
       let list = saved ? JSON.parse(saved) : [];
 
-      if (!list.some((i: any) => `${i.id}-${i.title}` === uniqueId)) {
-        list.push(course);
-        await AsyncStorage.setItem("enrollments", JSON.stringify(list));
-      }
+      const exists = list.some(
+        (i: any) => `${i.id}-${i.title}-${i.description}` === uniqueId,
+      );
 
-      setEnrolled(true);
-      Alert.alert("Success", "You are enrolled 🎉");
+      if (exists) {
+        Alert.alert("Unenroll", "Are you sure?", [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "OK",
+            onPress: async () => {
+              const updated = list.filter(
+                (i: any) => `${i.id}-${i.title}-${i.description}` !== uniqueId,
+              );
+              await AsyncStorage.setItem(
+                "enrollments",
+                JSON.stringify(updated),
+              );
+              await checkEnrollNotification(updated);
+              setEnrolled(false);
+            },
+          },
+        ]);
+      } else {
+        const updated = [...list, course];
+        await AsyncStorage.setItem("enrollments", JSON.stringify(updated));
+        await checkEnrollNotification(updated);
+        setEnrolled(true);
+        Alert.alert("Success", "You are enrolled 🎉");
+      }
     } catch (e) {
-      console.log("ENROLL ERROR", e);
+      console.log("Enroll Error:", e);
     }
   };
 
-  // ⏳ Loading UI
   if (loadingState) {
     return (
       <View style={styles.center}>
@@ -115,51 +157,33 @@ export default function CourseDetails() {
     );
   }
 
-  // ❌ NO DATA UI
   if (!course) {
     return (
       <View style={styles.center}>
-        <Text style={styles.emptyText}>
-          No data is selected right now.
-          {"\n\n"}
-          Please go to Home page and select any course card, then you will be
-          redirected here.
-        </Text>
+        <View style={styles.center2}>
+          <Text style={styles.title2}>Course Details</Text>
+          <Border />
+        </View>
 
-        <TouchableOpacity
-          style={[styles.button, { marginTop: 20 }]}
-          onPress={() => router.replace("/home")}
-        >
-          <Text style={styles.buttonText}>Go to Home</Text>
-        </TouchableOpacity>
+        <Text style={styles.text}>No Course Data Found</Text>
+        <Text></Text>
       </View>
     );
   }
 
-  // 📦 Order Data
-  const orderedEntries = Object.entries(course)
-    .filter(([key]) => key !== "images")
-    .sort(([a], [b]) => {
-      if (a === "id") return -1;
-      if (b === "id") return 1;
-      if (a === "instructorName") return 1;
-      if (b === "instructorName") return -1;
-      if (a === "thumbnail") return 1;
-      if (b === "thumbnail") return -1;
-      return 0;
-    });
+  const orderedEntries = Object.entries(course).filter(
+    ([key]) => key !== "images",
+  );
 
   return (
-    <ScrollView style={styles.container}>
-      {/* 🔙 Back */}
-      <TouchableOpacity onPress={() => router.back()}>
-        <Text style={styles.back}>⬅ Back</Text>
-      </TouchableOpacity>
-
-      {/* 📘 Title */}
-      <Text style={styles.title}>{course.title || "No Title"}</Text>
-
-      {/* 📦 DETAILS CARD */}
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <Text style={styles.title}>Course Details</Text>
+      <Border />
       <View style={styles.card}>
         <Text style={styles.section}>📘 Course Details</Text>
 
@@ -175,28 +199,24 @@ export default function CourseDetails() {
         ))}
       </View>
 
-      {/* 🎓 Enroll */}
       <TouchableOpacity
-        style={[styles.button, enrolled && { backgroundColor: "green" }]}
-        onPress={handleEnroll}
-        disabled={enrolled}
+        style={[styles.button, enrolled && { backgroundColor: "red" }]}
+        onPress={toggleEnroll}
       >
         <Text style={styles.buttonText}>
-          {enrolled ? "Enrolled ✅" : "Enroll Now"}
+          {enrolled ? "Unenroll ❌" : "Enroll 🎓"}
         </Text>
       </TouchableOpacity>
 
-      {/* 🔖 Bookmark */}
       <TouchableOpacity
         style={[styles.button, bookmarked && { backgroundColor: "orange" }]}
         onPress={toggleBookmark}
       >
         <Text style={styles.buttonText}>
-          {bookmarked ? "Bookmarked ⭐" : "Add Bookmark"}
+          {bookmarked ? "Remove Bookmark ❌" : "Add Bookmark ⭐"}
         </Text>
       </TouchableOpacity>
 
-      {/* 🌐 WebView */}
       <TouchableOpacity
         style={styles.button}
         onPress={() =>
@@ -213,67 +233,44 @@ export default function CourseDetails() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 15,
-    marginTop: 30,
-    backgroundColor: "#fff",
-  },
-
+  container: { flex: 1, padding: 5, marginTop: 30, backgroundColor: "white" },
   center: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    justifyContent: "space-between",
+    backgroundColor: "white",
+    marginTop: 30,
   },
-
-  emptyText: {
+  center2: {
+    marginLeft: 5,
+    marginRight: 5,
+  },
+  back: { fontSize: 18, marginBottom: 10 },
+  title: { fontSize: 30, fontWeight: "bold", color: "black" },
+  title2: {
+    fontSize: 30,
+    fontWeight: "bold",
+    // marginLeft: 5,
+    color: "black",
+    marginTop: 5,
+  },
+  text: {
     textAlign: "center",
-    fontSize: 16,
-    color: "#444",
-  },
-
-  back: {
     fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
   },
-
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-
   card: {
-    backgroundColor: "#f5f5f5",
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
-  },
-
-  section: {
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 6,
-  },
-
-  key: {
-    fontWeight: "bold",
+    backgroundColor: "#fff",
+    elevation: 3,
     marginRight: 5,
-    color: "#333",
+    marginLeft: 5,
+    marginTop: 8,
   },
-
-  value: {
-    flexShrink: 1,
-    color: "#555",
-  },
-
+  section: { fontWeight: "bold", marginBottom: 10 },
+  row: { flexDirection: "row", flexWrap: "wrap", marginBottom: 6 },
+  key: { fontWeight: "bold", marginRight: 5 },
+  value: { flexShrink: 1 },
   button: {
     backgroundColor: "#007bff",
     padding: 14,
@@ -281,9 +278,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginVertical: 8,
   },
-
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
+  buttonText: { color: "#fff", fontWeight: "bold" },
 });

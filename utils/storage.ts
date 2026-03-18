@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 
 const isWeb = Platform.OS === "web";
 
-// ✅ SAVE TOKEN
+// SAVE TOKEN
 export const saveToken = async (token: string) => {
   try {
     if (isWeb) {
@@ -16,7 +16,7 @@ export const saveToken = async (token: string) => {
   }
 };
 
-// ✅ GET TOKEN
+// GET TOKEN
 export const getToken = async () => {
   try {
     if (isWeb) {
@@ -30,14 +30,14 @@ export const getToken = async () => {
   }
 };
 
-// ✅ REMOVE TOKEN
+// REMOVE TOKEN
 export const removeToken = async () => {
   try {
     if (isWeb) {
       localStorage.removeItem("token");
     } else {
       await SecureStore.deleteItemAsync("token");
-      console.log("token deleted successfully!");
+      // console.log("token deleted successfully!");
     }
   } catch (e) {
     console.log("REMOVE TOKEN ERROR:", e);
