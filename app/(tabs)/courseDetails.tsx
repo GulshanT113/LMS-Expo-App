@@ -103,6 +103,7 @@ export default function CourseDetails() {
         await saveBookmarks(updated);
         await checkBookmarkNotification(updated);
         setBookmarked(true);
+        Alert.alert("Success", "You are Bookmarked! 🎉");
       }
     } catch (e) {
       console.log("Bookmark Error:", e);
@@ -142,7 +143,7 @@ export default function CourseDetails() {
         await AsyncStorage.setItem("enrollments", JSON.stringify(updated));
         await checkEnrollNotification(updated);
         setEnrolled(true);
-        Alert.alert("Success", "You are enrolled 🎉");
+        Alert.alert("Success", "You are enrolled! 🎉");
       }
     } catch (e) {
       console.log("Enroll Error:", e);
