@@ -48,3 +48,44 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+🧠 Key Architectural Decisions
+
+Expo Router → File-based navigation
+AsyncStorage → Used for:
+Bookmarks
+Enrollments
+Profile image persistence
+Service Layer → API handling (authService, courseService)
+Reusable Utilities → Bookmark storage abstraction
+Notifications → Implemented using Expo Notifications
+Offline Detection → Using NetInfo
+Component-Based Structure → Clean and reusable components
+
+✨ Features
+
+🔐 Login / Register with validation
+👁️ Show / Hide Password
+📚 Course Listing & Course Details
+⭐ Bookmark Courses
+🎓 Enroll Courses
+🔄 Pull-to-Refresh
+🔔 Local Notifications (Bookmark & Enroll milestones)
+⏰ Inactivity Reminder Notification
+📶 Internet Connectivity Detection
+👤 Profile Screen
+Upload image (Camera + Gallery)
+Persistent profile image
+🌐 WebView integration
+
+📸 Screenshots
+
+Add the app screenshots in assets/app-screen-shots.
+
+![Home](./screenshots/1.png)...
+![Course Details](./screenshots/5.png)...
+![Profile](./screenshots/14.png)...
+![Login](./screenshots/24.png)...
+
+all screenshot are available on 'app screen shots' folder.
